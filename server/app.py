@@ -18,6 +18,12 @@ db.init_app(app)
 
 api = Api(app)
 
+@app.before_request
+def authorize_user():
+    if not session.get('user_id') and request.endpoint in ['member_index','member_article']:
+        response = make_response({"error":"Not authorized"},401)
+        return response
+
 class ClearSession(Resource):
 
     def delete(self):
@@ -87,12 +93,17 @@ class CheckSession(Resource):
 class MemberOnlyIndex(Resource):
     
     def get(self):
-        pass
+        articles = Article.query.filter(Article.is_member_only == True).all()
+        articles_dict = [article.to_dict() for article in articles]
+        response = make_response(articles_dict,200)
+        return response
 
 class MemberOnlyArticle(Resource):
     
     def get(self, id):
-        pass
+        article = Article.query.filter(Article.id == id).first()
+        response = make_response(article.to_dict(),200)
+        return response
 
 api.add_resource(ClearSession, '/clear', endpoint='clear')
 api.add_resource(IndexArticle, '/articles', endpoint='article_list')
